@@ -27,19 +27,23 @@ struct WordView: View {
     @Binding var color: Color
     var duration: Double
     var parentSize: CGSize
-    
-    init(parentSize: CGSize, word: Binding<String>, color: Binding<Color>, duration: Double) {
+    let initialDelay: Double
+
+    init(parentSize: CGSize, word: Binding<String>, color: Binding<Color>, duration: Double, initialDelay: Double) {
         self.parentSize = parentSize
         self._word = word
         self._color = color
         self.duration = duration
         let randomX = CGFloat.random(in: 0...(parentSize.width))
         destination = CGPoint(x: randomX, y: 0)
+        self.initialDelay = initialDelay
     }
+    
+    @State private var isVisible: Bool = false
     
     var body: some View {
         VStack{
-            if !word.isEmpty {
+            if isVisible{
                 Text(word)
                     .font(.none)
                     .padding()
@@ -52,6 +56,10 @@ struct WordView: View {
                     .animation(.linear(duration: self.duration), value: destination)
             }
         }
+        .onAppear(){
+            DispatchQueue.main.asyncAfter(deadline: .now() + initialDelay) {
+                self.isVisible = true
+            }
+        }
     }
 }
-

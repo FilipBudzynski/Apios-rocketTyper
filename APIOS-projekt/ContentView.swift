@@ -8,11 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
-
+    
     @State private var words: [String] = []
     @State private var wordColors: [Color] = []
     @State private var focusedWordIndex: Int? = nil
     @State private var currentInput = ""
+    @State private var regenerateWordsID = UUID()
+    @State private var timer: Timer?
+    @State private var isGameStarted = false
+    private var currentIndex = 0
+    @State private var score = 0
+    @State private var wordsCount = 5
+    @State private var duration: Float = 15
     
     
     var body: some View {
@@ -24,36 +31,76 @@ struct ContentView: View {
                             parentSize: geometry.size,
                             word: $words[index],
                             color: $wordColors[index],
-                            duration: 15.0
+                            duration: Double(self.duration),
+                            initialDelay: Double(index) * Double.random(in: 0.5...1.0)
                         )
                     }
                 }
+                .id(regenerateWordsID)
+                
+                VStack{
+                    Spacer()
+                    HStack{
+                        Spacer()
+                        if !isGameStarted {
+                            Button(action: startGame) {
+                                Text("Start Game")
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                                    .padding()
+                            }
+                            .cornerRadius(10)
+                            .transition(.asymmetric(
+                                insertion: AnyTransition.opacity.animation(.linear(duration: 1.0)),
+                                removal: AnyTransition.opacity.animation(.linear(duration: 1.0))))
+                        }
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                
+                
                 
                 Group {
-                    TextField("Wpisz literę", text: $currentInput)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                        .onChange(of: currentInput) { newValue in
-                            checkInput(newValue)
-                        }
+                    HStack {
+                        Spacer()
+                        Text("Score: \(score)")
+                            .font(.title)
+                            .padding()
+                        Spacer()
+                        
+                        TextField("Wpisz literę", text: $currentInput)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+                            .onChange(of: currentInput) { newValue in
+                                checkInput(newValue)
+                            }
+                    }
+                    
                 }
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 
+                
             }
+            
         }
         .padding()
         .onAppear {
-            generateWords()
+            //generateWords()
         }
         .frame(maxWidth: 600, minHeight: 700)
-        
+    }
+    
+    private func startGame() {
+        isGameStarted = true
+        generateWords()
     }
     
     private func generateWords() {
         var selectedWords: [String] = []
         var usedStartingLetters: Set<Character> = []
         
-        while selectedWords.count < 5 {
+        while selectedWords.count < wordsCount {
             let randomIndex = Int.random(in: 0..<SAMPLE_WORDS.count)
             let word = SAMPLE_WORDS[randomIndex]
             let startingLetter = word.first!
@@ -86,15 +133,22 @@ struct ContentView: View {
     }
     
     private func updateFocusedWord(at index: Int, with char: Character) {
+        print(words.count)
         if words[index].first == char {
             words[index].removeFirst()
             if words[index].isEmpty {
-                //words.remove(at: index)
-                //wordColors.remove(at: index)
+                score += 1
                 resetFocus()
-                //generateWordsIfNeeded()
-                
             }
+        }
+        
+        if words.allSatisfy({ $0.isEmpty }) {
+            words.removeAll()
+            wordColors.removeAll()
+            wordsCount += 2
+            duration = duration * 0.8
+            generateWords()
+            regenerateWordsID = UUID()
         }
     }
     
@@ -110,12 +164,6 @@ struct ContentView: View {
     }
     
     private func generateWordsIfNeeded() {
-        let allEmpty = words.allSatisfy { $0.isEmpty }
-        if allEmpty {
-            words.removeAll()
-            wordColors.removeAll()
-            generateWords()
-        }
     }
     
     private func removeWord(at index: Int) {
